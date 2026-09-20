@@ -1,4 +1,5 @@
 import { createUser, getUsers , deleteUser, updateUser, getUserByEmail } from "./user.service.js";
+import bcrypt from "bcrypt";
 
 
 export const getUsersController = async (req,res, next)=>{
