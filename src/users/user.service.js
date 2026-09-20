@@ -5,7 +5,6 @@ import bcrypt from "bcrypt";
 export const  getUsers = async () => {
     const result = await pool.query('SELECT * FROM users')
     return result.rows
-    
 }
 
 export const  getUser = async (id) => {
@@ -40,4 +39,10 @@ export const updateUser = async(id , name , email)=>{
 export const deleteUser = async(id)=>{
     const result = await pool.query('DELETE  FROM users WHERE id = $1 ',[id])
     return  result.rowCount
+}
+
+
+export const getUserByEmail = async (email) => {
+    const result =await pool.query(`SELECT * FROM users WHERE email = $1` , [email])
+    return result.rows[0];
 }

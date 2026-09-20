@@ -1,4 +1,4 @@
-import { createUser, getUsers , deleteUser, updateUser } from "./user.service.js";
+import { createUser, getUsers , deleteUser, updateUser, getUserByEmail } from "./user.service.js";
 
 
 export const getUsersController = async (req,res, next)=>{
@@ -59,3 +59,34 @@ export const deleteUserController = async(req,res,next)=>{
         return next(error)
     }
 }
+export const loginUserController = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        const loginUser = await getUserByEmail(email);
+
+        if (!loginUser) {
+            return res.status(401).json({
+                message: "invalid email or password"
+            });
+        }
+
+        const passwordMatch = await bcrypt.compare(
+            password,
+            loginUser.password
+        );
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                message: "invalid email or password"
+            });
+        }
+
+        return res.status(200).json({
+            message: "login successful"
+        });
+
+    } catch (error) {
+        return next(error);
+    }
+};
