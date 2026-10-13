@@ -1,7 +1,7 @@
 import { pool } from "../config/database.js";
 
 
-    export const  getTasks = async (status , priority , search ,sort ,order,page,limit) => {
+    export const  getTasks = async (userId,status , priority , search ,sort ,order,page,limit) => {
         // before we where writing get sql directly , now its more fliexalble to add fliter and sort and order 
         // meaning we pin one line of query and its SELECT * FROM tasks ...... then the rest will come if a certin condition is fullfiled 
         let query = "SELECT tasks.id AS task_id, tasks.title, tasks.status, users.name AS user_name, users.email AS user_email FROM tasks INNER JOIN users ON tasks.user_id = users.id"
@@ -13,9 +13,14 @@ import { pool } from "../config/database.js";
         const allowedSortFileds = ["created_at", "due_date","priority"]
         // order will only be two values 
         const allowedOrder = ["ASC","DESC"]
-        const pageNumber = Number(page) || 1
-        const limitNumber = Number(limit) || 10;
+        const pageNumber = Math.max(Number(page) || 1, 1);
+        const limitNumber = Math.min(Math.max(Number(limit) || 10, 1), 100);
         const offset = (pageNumber - 1) * limitNumber;
+
+        if(userId){
+            values.push(userId)
+            conditions.push(` tasks.user_id = $${values.length}`)
+        }
     
         if(status){
             values.push(status)
@@ -45,15 +50,11 @@ import { pool } from "../config/database.js";
         const totalPages = Math.ceil(total/limitNumber)
 
 
-        console.log(countResult.rows)
-        
         values.push(limitNumber)
         query += ` LIMIT $${values.length}`
         values.push(offset)
         query +=` OFFSET $${values.length}`
-        console.log(query);
-        console.log(values);
-            const result = await pool.query(query, values);
+        const result = await pool.query(query, values);
             
             
         return {
@@ -66,8 +67,8 @@ import { pool } from "../config/database.js";
         
     }
 
-export const  getTask = async (id) => {
-    const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [id])
+export const  getTask = async (userId ,id) => {
+    const result = await pool.query('SELECT * FROM tasks WHERE user_id = $1 AND id = $2', [userId,id])
     return result.rows[0]
     
 }
@@ -76,56 +77,74 @@ export const createTask = async(user_id,title,description,status,priority,due_da
     const result = await pool.query('INSERT INTO tasks (user_id,title,description,status,priority,due_date) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *' , [user_id,title,description,status,priority,due_date]);
     return result.rows[0]
 }
-export const updateTask = async(id,user_id,title,description,status,priority,due_date)=>{
-    const result = await pool.query('UPDATE  tasks SET user_id =$2 , title =$3, description=$4 , status=$5 ,priority=$6  ,due_date=$7 WHERE id =$1 RETURNING *', [id,user_id,title,description,status,priority,due_date])
+export const updateTask = async(id,userId,title,description,status,priority,due_date)=>{
+    const result = await pool.query('UPDATE  tasks SET  title =$3, description=$4 , status=$5 ,priority=$6  ,due_date=$7 WHERE id =$1 AND user_id =$2  RETURNING *', [id,userId,title,description,status,priority,due_date])
     return result.rows[0]
 }
 
-export const deleteTask = async(id)=>{
-    const result = await pool.query('DELETE  FROM tasks WHERE id = $1 ',[id])
+export const deleteTask = async(id,userId)=>{
+    const result = await pool.query('DELETE  FROM tasks WHERE id = $1 AND user_id = $2 ',[id,userId])
     return  result.rowCount
 }
 
-export const patchTask = async (id ,title,description,status,priority,due_date) => {
-    const values = []
-    const updates = []
+export const patchTask = async (
+    id,
+    userId,
+    title,
+    description,
+    status,
+    priority,
+    due_date
+) => {
+    const values = [];
+    const updates = [];
 
-    if(title){
-        values.push(title)
-        updates.push(` title = $${values.length}`)
+    if (title !== undefined) {
+        values.push(title);
+        updates.push(`title = $${values.length}`);
     }
-    if(description){
-        values.push(description)
-        updates.push(` description = $${values.length}`)
+
+    if (description !== undefined) {
+        values.push(description);
+        updates.push(`description = $${values.length}`);
     }
-    
-    if(status){
-        
-        values.push(status)
-        updates.push(` status = $${values.length}`)
+
+    if (status !== undefined) {
+        values.push(status);
+        updates.push(`status = $${values.length}`);
     }
-    if(priority){
-        values.push(priority)
-        updates.push(` priority = $${values.length}`)
+
+    if (priority !== undefined) {
+        values.push(priority);
+        updates.push(`priority = $${values.length}`);
     }
-    
-    if(due_date){
-        values.push(due_date)
-        updates.push(` due_date = $${values.length}`)
+
+    if (due_date !== undefined) {
+        values.push(due_date);
+        updates.push(`due_date = $${values.length}`);
     }
 
     const setClause = updates.join(", ");
 
+    if (!setClause) {
+        return null;
+    }
+
     values.push(id);
+    const taskIdPosition = values.length;
+
+    values.push(userId);
+    const userIdPosition = values.length;
 
     const query = `
         UPDATE tasks
         SET ${setClause}
-        WHERE id = $${values.length}
+        WHERE id = $${taskIdPosition}
+        AND user_id = $${userIdPosition}
         RETURNING *
     `;
 
     const result = await pool.query(query, values);
 
-    return result.rows[0];}
-
+    return result.rows[0];
+};

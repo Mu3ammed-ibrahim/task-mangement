@@ -1,7 +1,14 @@
 export const validateRegister = (req, res, next) => {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (
+        typeof name !== "string" ||
+        typeof email !== "string" ||
+        typeof password !== "string" ||
+        !name.trim() ||
+        !email.trim() ||
+        !password
+    ) {
         return res.status(400).json({
             message: "name, email and password are required"
         });
@@ -9,12 +16,6 @@ export const validateRegister = (req, res, next) => {
 
     const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedName || !normalizedEmail) {
-        return res.status(400).json({
-            message: "name and email cannot be empty"
-        });
-    }
 
     if (password.length < 8) {
         return res.status(400).json({

@@ -1,8 +1,9 @@
-import { getTasks , getTask , createTask , updateTask,patchTask, deleteTask} from "./task.service.js";
+import { getTasks, getTask, createTask, updateTask, patchTask, deleteTask } from "./task.service.js";
 export const getTasksController =  async (req,res,next) => {
       try {
-        const {status , priority ,search ,sort , order ,page , limit} = req.query;
-         const tasks = await getTasks(status, priority ,search ,sort,order,page,limit);
+        const { status, priority, search, sort, order, page, limit } = req.query;
+        const userId = req.user.userId;
+        const tasks = await getTasks(userId, status, priority, search, sort, order, page, limit);
         res.status(200).json(tasks)
             
         } catch (error) {
@@ -13,12 +14,12 @@ export const getTasksController =  async (req,res,next) => {
 export const getTaskController =  async (req,res,next) => {
       try {
         const {id} = req.params;
-        const task = await getTask(id);
-        if(!task) return res.status(404).json({message : "task cannot be found"})
+        const userId = req.user.userId;
+        const task = await getTask(userId, id);
+        if (!task) return res.status(404).json({ message: "task cannot be found" });
         return res.status(200).json(task)
             
         } catch (error) {
-            console.log(error.code)
             return next(error)
         }
     
@@ -26,12 +27,12 @@ export const getTaskController =  async (req,res,next) => {
 
 export const postTaskController = async(req,res,next)=>{
     try {
-        const {user_id,title,description,status,priority,due_date} = req.body;
-        const createNewTask = await createTask(user_id,title,description,status,priority,due_date)
+        const {title,description,status,priority,due_date} = req.body;
+        const userId = req.user.userId;
+        const createNewTask = await createTask(userId, title, description, status, priority, due_date)
         return res.status(201).json(createNewTask)
         
     } catch (error) {
-        console.log(error.code)
             return next(error)
         
     }
@@ -40,8 +41,9 @@ export const postTaskController = async(req,res,next)=>{
 export const updateTaskController = async (req,res,next) => {
    try{
     const {id} = req.params;
-    const {user_id,title,description,status,priority,due_date} = req.body ;
-    const updateTaskById = await updateTask(id,user_id,title,description,status,priority,due_date)
+    const {title,description,status,priority,due_date} = req.body ;
+    const userId = req.user.userId;
+    const updateTaskById = await updateTask(id,userId,title,description,status,priority,due_date)
     if(!updateTaskById){
         return res.status(404).json({message : "task is not found"})
     }
@@ -57,7 +59,8 @@ export const updateTaskController = async (req,res,next) => {
 export const deleteTaskController = async (req,res,next) => {
     try {
         const {id} = req.params;
-        const deleteTaskById = await deleteTask(id)
+        const userId = req.user.userId;
+        const deleteTaskById = await deleteTask(id,userId)
         if(deleteTaskById === 0){
             return res.status(404).json({ message : 'task is not found'})
         }
@@ -71,6 +74,7 @@ export const deleteTaskController = async (req,res,next) => {
 export const patchTaskController = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const userId = req.user.userId;
 
         const {
             title,
@@ -92,8 +96,10 @@ export const patchTaskController = async (req, res, next) => {
             });
         }
 
+
         const updatedTask = await patchTask(
             id,
+            userId,
             title,
             description,
             status,
@@ -113,4 +119,3 @@ export const patchTaskController = async (req, res, next) => {
         return next(error);
     }
 };
-
