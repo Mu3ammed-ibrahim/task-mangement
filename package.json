@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "cross-env NODE_ENV=test vitest run"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,9 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.1",
+    "vitest": "^4.1.11"
   }
 }
